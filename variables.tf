@@ -1,11 +1,16 @@
 variable "region" {
-  description = "GCP region"
-  default     = "europe-west1"
+  description = "GCP region for the cluster"
+  default = "europe-west1"
+}
+
+variable "location" {
+  description = "GCP region or zone, use region for fault tolerances, but you end up with zones * worker_nodes. must reside inside the regions above"
+  default     = "europe-west1-b"
 }
 
 variable "machine_type" {
   description = "GKE machine type"
-  default     = "e2-standard-2"
+  default     = "e2-highmem-2"
 }
 
 variable "neo4j_namespace" {
@@ -31,4 +36,19 @@ variable "email" {
 
 variable "neo4j_domain" {
   description = "Domain name used for Neo4j cert"
+}
+
+variable "dns_root_domain" {
+  description = "Root DNS domain that you own and will delegate to GCP Cloud DNS"
+  default = "neowork.me"
+}
+
+variable "dns_managed_zone" {
+  description = "GCP managed zone for the above dns_root_domain"
+  default = "neowork-root"
+}
+
+variable "worker_nodes" {
+  description = "number of GKE worker nodes to create"
+  default = 3
 }
