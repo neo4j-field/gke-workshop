@@ -7,8 +7,6 @@ neo4j:
   edition: "enterprise"
   acceptLicenseAgreement: "yes"
   minimumClusterSize: 3
-  operations:
-    enableServer: true
 
   licenses:
     disableSubPathExpr: true
@@ -69,3 +67,4 @@ config:
   server.memory.heap.max_size: ${neo4j_heap}
   server.memory.pagecache.size: ${neo4j_pg}
   dbms.security.procedures.unrestricted: "apoc.*"
+  initial.dbms.automatically_enable_free_servers: "true"
