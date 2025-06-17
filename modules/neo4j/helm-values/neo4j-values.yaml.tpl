@@ -1,39 +1,40 @@
 neo4j:
   name: "neo4j"
   resources:
-    cpu: "1"
-    memory: "2Gi"
+    cpu: ${resource_cpu}
+    memory: ${resource_mem}
 
   edition: "enterprise"
   acceptLicenseAgreement: "yes"
-  minimumClusterSize: 3
+  minimumClusterSize: ${neo4j_core_count}
+  operations:
+    enableServer: true
 
 
 ssl:
   bolt:
-    enabled: true
-    requiresClientAuth: false
-    private_key: /ssl/tls.key
-    public_certificate: /ssl/tls.crt
+    privateKey:
+      secretName: neo4j-tls
+      subPath: tls.key
+    publicCertificate:
+      secretName: neo4j-tls
+      subPath: tls.crt
+
   https:
-    enabled: true
-    requiresClientAuth: false
-    private_key: /ssl/tls.key
-    public_certificate: /ssl/tls.crt
-
-additionalVolumes:
-  - name: ssl
-    secret:
-      secretName: ${tls_secret_name}
-
-additionalVolumeMounts:
-  - name: ssl
-    mountPath: /ssl
-    readOnly: true
+    privateKey:
+      secretName: neo4j-tls
+      subPath: tls.key
+    publicCertificate:
+      secretName: neo4j-tls
+      subPath: tls.crt
 
 services:
   neo4j:
     enabled: true
+    spec:
+      type: LoadBalancer
+      loadBalancerIP: ${loadbalancer_ip}
+
 
 volumes:
   data:

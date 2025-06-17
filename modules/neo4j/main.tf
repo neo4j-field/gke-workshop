@@ -17,13 +17,11 @@ resource "kubernetes_storage_class" "neo4j_sc" {
       creator = var.creator_name
     }
   }
-
   storage_provisioner = "pd.csi.storage.gke.io"
 
   parameters = {
     type = "pd-standard" # or pd-ssd
   }
-
   reclaim_policy         = "Delete"
   volume_binding_mode    = "WaitForFirstConsumer"
   allow_volume_expansion = true
@@ -49,7 +47,6 @@ resource "helm_release" "cert_manager" {
   repository = "https://charts.jetstack.io"
   chart      = "cert-manager"
   namespace  = "cert-manager"
-
   set {
     name  = "crds.enabled"
     value = "true"
@@ -83,7 +80,7 @@ locals {
 
 resource "local_file" "cluster_issuer_yaml" {
   content  = local.cluster_issuer_yaml
-  filename = "${path.module}/templates/cluster_issuer.yaml"
+  filename = "${path.module}/rendered/cluster_issuer.yaml"
 }
 
 
@@ -91,7 +88,7 @@ resource "null_resource" "apply_cluster_issuer" {
   provisioner "local-exec" {
     command = <<EOT
     echo "Applying ClusterIssuer..."
-    kubectl apply -f ${path.module}/templates/cluster_issuer.yaml
+    kubectl apply -f ${path.module}/rendered/cluster_issuer.yaml
     EOT
   }
   depends_on = [null_resource.wait_for_clusterissuer_crd]
@@ -108,7 +105,7 @@ locals {
 
 resource "local_file" "neo4j_certificate_yaml" {
   content  = local.neo4j_certificate_yaml
-  filename = "${path.module}/templates/neo4j_certificate.yaml"
+  filename = "${path.module}/rendered/neo4j_certificate.yaml"
 }
 
 resource "null_resource" "apply_neo4j_certificate" {
@@ -117,27 +114,74 @@ resource "null_resource" "apply_neo4j_certificate" {
     kubernetes_namespace.neo4j,
     local_file.neo4j_certificate_yaml
   ]
-
   provisioner "local-exec" {
-    command = "kubectl apply -f ${path.module}/templates/neo4j_certificate.yaml"
+    command = "kubectl apply -f ${path.module}/rendered/neo4j_certificate.yaml"
   }
 }
 
-resource "helm_release" "neo4j" {
-  name             = "neo4j"
-  repository       = "https://helm.neo4j.com/neo4j"
-  chart            = "neo4j"
-  namespace        = var.neo4j_namespace
-  create_namespace = true
+resource "local_file" "neo4j_helm_values" {
+  content  = templatefile("${path.module}/helm-values/neo4j-values.yaml.tpl", {
+    neo4j_core_count = var.neo4j_core_count
+    resource_cpu     = var.resource_cpu
+    resource_mem     = var.resource_mem
+    loadbalancer_ip  = var.loadbalancer_ip
+  })
+  filename = "${path.module}/rendered/neo4j-values.yaml"
+}
 
-  values = [
-    templatefile("${path.module}/helm-values/neo4j-values.yaml.tpl", {
-      tls_secret_name = "neo4j-tls"
-    })
-  ]
+resource "null_resource" "neo4j_cluster" {
+  triggers = {
+    core_count = var.neo4j_core_count
+  }
 
+  provisioner "local-exec" {
+    command = <<EOT
+    for i in $(seq 0 $(( ${var.neo4j_core_count} - 1 ))); do
+      echo "Installing/upgrading neo4j-$${i}"
+      helm upgrade --install neo4j-$${i} \
+        --repo https://helm.neo4j.com/neo4j neo4j \
+        --namespace ${var.neo4j_namespace} \
+        -f ${local_file.neo4j_helm_values.filename}
+    done
+    EOT
+  }
   depends_on = [
+    local_file.neo4j_helm_values,
     null_resource.apply_neo4j_certificate,
     kubernetes_storage_class.neo4j_sc
   ]
 }
+
+resource "null_resource" "wait_for_neo4j_pods" {
+  provisioner "local-exec" {
+    command = <<EOT
+    echo "Waiting for Neo4j pods to become ready..."
+    kubectl wait --for=condition=ready pod -l app=neo4j -n ${var.neo4j_namespace} --timeout=300s
+    echo "All Neo4j pods are ready."
+    EOT
+  }
+  depends_on = [null_resource.neo4j_cluster]
+}
+
+resource "null_resource" "print_and_store_neo4j_password" {
+  provisioner "local-exec" {
+    command = <<EOT
+    echo "Fetching Neo4j password and saving to .neo4j_password.txt..."
+    kubectl get secret neo4j-auth -n ${var.neo4j_namespace} \
+      -o jsonpath='{.data.NEO4J_AUTH}' | base64 -d > .neo4j_password.txt
+    echo "" >> .neo4j_password.txt
+
+    echo ""
+    echo "======================================"
+    echo "  Neo4j Credentials:"
+    echo ""
+    echo "   URL  : https://${var.neo4j_domain}:7473"
+    echo "   Bolt : bolt://${var.neo4j_domain}:7687"
+    echo -n "   Auth : " && cat .neo4j_password.txt
+    echo "======================================"
+    EOT
+  }
+
+  depends_on = [null_resource.wait_for_neo4j_pods]
+}
+

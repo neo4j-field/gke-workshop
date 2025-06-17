@@ -7,7 +7,6 @@ resource "google_service_account" "dns_solver" {
 resource "google_compute_address" "neo4j_ip" {
   name   = "${var.creator_name}-${var.workshop_name}-ip"
   region = var.region
-
   labels = {
     creator = var.creator_name
   }
@@ -32,11 +31,9 @@ resource "google_container_cluster" "gke_cluster" {
   remove_default_node_pool = true
   initial_node_count       = 1
   deletion_protection = false
-
   resource_labels = {
     creator = var.creator_name
   }
-
   network    = google_compute_network.vpc.id
   subnetwork = google_compute_subnetwork.subnet.name
 }
@@ -64,6 +61,18 @@ resource "google_container_node_pool" "neo4j_pool" {
       disable-legacy-endpoints = "true"
     }
   }
-
   depends_on = [google_container_cluster.gke_cluster]
+}
+
+# sets the kubectl context locally to the created cluster
+resource "null_resource" "configure_kubectl" {
+  provisioner "local-exec" {
+    command = <<EOT
+    echo "Configuring kubectl for GKE cluster..."
+    gcloud container clusters get-credentials ${google_container_cluster.gke_cluster.name} \
+      --region ${google_container_cluster.gke_cluster.location} \
+      --project ${google_container_cluster.gke_cluster.project}
+    EOT
+  }
+  depends_on = [google_container_node_pool.neo4j_pool]
 }
