@@ -3,3 +3,4 @@ terraform.tfstate*
 .terraform/
 .neo4j_password.txt
 /modules/neo4j/rendered/
+/licenses/

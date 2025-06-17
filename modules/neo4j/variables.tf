@@ -7,6 +7,8 @@ variable "neo4j_core_count" {}
 variable "resource_cpu" {}
 variable "resource_mem" {}
 variable "loadbalancer_ip" {}
+variable "neo4j_heap" {}
+variable "neo4j_pg" {}
 
 variable "dns_solver_key" {
   sensitive   = true

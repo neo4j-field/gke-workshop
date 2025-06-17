@@ -119,19 +119,45 @@ resource "null_resource" "apply_neo4j_certificate" {
   }
 }
 
+resource "kubernetes_secret" "gds_bloom_license" {
+  count = fileexists(abspath("${path.root}/licenses/gds.license")) || fileexists(abspath("${path.root}/licenses/bloom.license")) ? 1 : 0
+
+  metadata {
+    name      = "gds-bloom-license"
+    namespace = var.neo4j_namespace
+  }
+
+  data = merge(
+      fileexists(abspath("${path.root}/licenses/gds.license")) ? {
+      "gds.license" = file(abspath("${path.root}/licenses/gds.license"))
+    } : {},
+      fileexists(abspath("${path.root}/licenses/bloom.license")) ? {
+      "bloom.license" = file(abspath("${path.root}/licenses/bloom.license"))
+    } : {}
+  )
+
+  type = "Opaque"
+}
+
 resource "local_file" "neo4j_helm_values" {
   content  = templatefile("${path.module}/helm-values/neo4j-values.yaml.tpl", {
-    neo4j_core_count = var.neo4j_core_count
-    resource_cpu     = var.resource_cpu
-    resource_mem     = var.resource_mem
-    loadbalancer_ip  = var.loadbalancer_ip
+    resource_cpu    = var.resource_cpu
+    resource_mem    = var.resource_mem
+    neo4j_heap      = var.neo4j_heap
+    neo4j_pg        = var.neo4j_pg
+    loadbalancer_ip = var.loadbalancer_ip
   })
   filename = "${path.module}/rendered/neo4j-values.yaml"
 }
 
 resource "null_resource" "neo4j_cluster" {
   triggers = {
-    core_count = var.neo4j_core_count
+    resource_cpu = var.resource_cpu
+    resource_mem = var.resource_mem
+    neo4j_heap   = var.neo4j_heap
+    neo4j_pg     = var.neo4j_pg
+    neo4j_core_count = var.neo4j_core_count
+    values_hash  = sha256(local_file.neo4j_helm_values.content)
   }
 
   provisioner "local-exec" {
@@ -148,7 +174,8 @@ resource "null_resource" "neo4j_cluster" {
   depends_on = [
     local_file.neo4j_helm_values,
     null_resource.apply_neo4j_certificate,
-    kubernetes_storage_class.neo4j_sc
+    kubernetes_storage_class.neo4j_sc,
+    kubernetes_secret.gds_bloom_license
   ]
 }
 

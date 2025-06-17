@@ -9,9 +9,10 @@ module "neo4j" {
   neo4j_core_count = var.neo4j_core_count
   resource_cpu     = var.resource_cpu
   resource_mem     = var.resource_mem
+  neo4j_heap       = var.neo4j_heap
+  neo4j_pg         = var.neo4j_pg
   dns_solver_key   = module.gke.dns_solver_key
   loadbalancer_ip  = module.gke.neo4j_dns_ip
-
   depends_on = [module.gke]
 
   providers = {

@@ -6,10 +6,21 @@ neo4j:
 
   edition: "enterprise"
   acceptLicenseAgreement: "yes"
-  minimumClusterSize: ${neo4j_core_count}
+  minimumClusterSize: 3
   operations:
     enableServer: true
 
+  licenses:
+    disableSubPathExpr: true
+    mode: volume
+    volume:
+      secret:
+        secretName: gds-bloom-license
+        items:
+          - key: gds.license
+            path: gds.license
+          - key: bloom.license
+            path: bloom.license
 
 ssl:
   bolt:
@@ -45,3 +56,16 @@ volumes:
       storageClassName: "neo4j-data"
       requests:
         storage: 10Gi
+
+env:
+  NEO4J_PLUGINS: '["graph-data-science", "bloom", "apoc"]'
+config:
+  gds.enterprise.license_file: "/licenses/gds.license"
+  dbms.security.procedures.unrestricted: "gds.*,apoc.*,bloom.*"
+  server.unmanaged_extension_classes: "com.neo4j.bloom.server=/bloom,semantics.extension=/rdf"
+  dbms.security.http_auth_allowlist: "/,/browser.*,/bloom.*"
+  dbms.bloom.license_file: "/licenses/bloom.license"
+  server.memory.heap.initial_size: ${neo4j_heap}
+  server.memory.heap.max_size: ${neo4j_heap}
+  server.memory.pagecache.size: ${neo4j_pg}
+  dbms.security.procedures.unrestricted: "apoc.*"

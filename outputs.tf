@@ -27,3 +27,8 @@ output "neo4j_core_pods" {
   value       = [for i in range(var.neo4j_core_count) : "neo4j-${i}.neo4j.${var.neo4j_namespace}.svc.cluster.local"]
   description = "Internal pod hostnames"
 }
+
+output "neo4j_password_hint" {
+  value       = "See .neo4j_password.txt for your generated Neo4j password."
+  description = "Instruction to locate the generated password"
+}
