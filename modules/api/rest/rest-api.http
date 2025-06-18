@@ -1,0 +1,57 @@
+POST {{url}}/create
+Authorization: Bearer testtest
+Content-Type: application/json
+Accept: application/json
+
+{
+  "count": 11
+}
+
+###
+POST {{url}}/create
+Authorization: Bearer testtest
+Content-Type: application/json
+Accept: text/csv
+
+{
+  "count": 5
+}
+
+###
+DELETE {{url}}/user/u_002
+Authorization: Bearer testtest
+Accept: application/json
+
+### create users with pdf
+POST {{url}}/create
+Authorization: Bearer testtest
+Content-Type: application/json
+Accept: application/pdf
+
+{
+  "count": 50
+}
+
+###
+# curl -X DELETE --location "http://localhost:5555/user/u_008"
+#    -H "Authorization: Bearer testtest"
+#    -H "Accept: application/json"
+DELETE http://localhost:5555/user/u_007
+Authorization: Bearer testtest
+Accept: application/json
+
+###
+
+
+GET {{url}}/databases/count
+Authorization: Bearer testtest
+
+###
+GET {{url}}/users
+Authorization: Bearer testtest
+Content-Type: application/json
+
+###
+GET {{url}}/users
+Authorization: Bearer testtest
+Accept: text/csv

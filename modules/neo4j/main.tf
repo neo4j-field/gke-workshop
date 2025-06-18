@@ -179,16 +179,22 @@ resource "null_resource" "neo4j_cluster" {
   ]
 }
 
-resource "null_resource" "wait_for_neo4j_pods" {
+resource "null_resource" "wait_for_neo4j_ready" {
   provisioner "local-exec" {
     command = <<EOT
-    echo "Waiting for Neo4j pods to become ready..."
-    kubectl wait --for=condition=ready pod -l app=neo4j -n ${var.neo4j_namespace} --timeout=300s
-    echo "All Neo4j pods are ready."
+    echo "Waiting for public Bolt port to be reachable..."
+    for i in {1..30}; do
+      nc -zv ${var.neo4j_domain} 7687 && exit 0
+      sleep 5
+    done
+    echo "Bolt port not ready after 150s"
+    exit 1
     EOT
   }
+
   depends_on = [null_resource.neo4j_cluster]
 }
+
 
 resource "null_resource" "print_and_store_neo4j_password" {
   provisioner "local-exec" {
@@ -209,6 +215,6 @@ resource "null_resource" "print_and_store_neo4j_password" {
     EOT
   }
 
-  depends_on = [null_resource.wait_for_neo4j_pods]
+  depends_on = [null_resource.wait_for_neo4j_ready]
 }
 

@@ -74,6 +74,11 @@ variable "project_id" {
   description = "GCP project ID"
 }
 
+variable "image_tag" {
+  description = "Docker image tag to deploy"
+  type        = string
+}
+
 variable "email" {
   description = "Email for cert-manager/contact."
 }

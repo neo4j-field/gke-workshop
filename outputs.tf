@@ -32,3 +32,9 @@ output "neo4j_password_hint" {
   value       = "See .neo4j_password.txt for your generated Neo4j password."
   description = "Instruction to locate the generated password"
 }
+
+output "api_token" {
+  value       = module.api.api_token
+  description = "API token from the API module"
+  sensitive = true
+}

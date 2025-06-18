@@ -4,3 +4,6 @@ terraform.tfstate*
 .neo4j_password.txt
 /modules/neo4j/rendered/
 /licenses/
+.api_token.txt
+/modules/api/venv/
+/modules/api/build/
