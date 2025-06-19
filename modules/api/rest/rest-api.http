@@ -1,36 +1,94 @@
-POST {{url}}/create
+### Create user
+POST {{url}}/users
 Authorization: Bearer testtest
 Content-Type: application/json
-Accept: application/json
-
-{
-  "count": 11
-}
-
-###
-POST {{url}}/create
-Authorization: Bearer testtest
-Content-Type: application/json
-Accept: text/csv
 
 {
   "count": 5
 }
 
-###
-DELETE {{url}}/user/u_002
+### Append user
+POST {{url}}/users
 Authorization: Bearer testtest
-Accept: application/json
+Content-Type: application/json
 
-### create users with pdf
-POST {{url}}/create
+{
+  "count": 5,
+  "append": true
+}
+
+### convert to csv
+POST {{url}}/export
+Authorization: Bearer testtest
+Content-Type: application/json
+Accept: text/csv
+
+[
+  {
+    "database": "db060",
+    "password": "on-dog-8",
+    "user": "u_060"
+  },
+  {
+    "database": "db061",
+    "password": "clean-tarpon-0",
+    "user": "u_061"
+  },
+  {
+    "database": "db062",
+    "password": "tough-gar-4",
+    "user": "u_062"
+  },
+  {
+    "database": "db063",
+    "password": "clean-dove-0",
+    "user": "u_063"
+  },
+  {
+    "database": "db064",
+    "password": "finer-ibex-0",
+    "user": "u_064"
+  }
+]
+
+### export to pdf
+POST {{url}}/export
 Authorization: Bearer testtest
 Content-Type: application/json
 Accept: application/pdf
 
-{
-  "count": 50
-}
+[
+  {
+    "database": "db060",
+    "password": "on-dog-8",
+    "user": "u_060"
+  },
+  {
+    "database": "db061",
+    "password": "clean-tarpon-0",
+    "user": "u_061"
+  },
+  {
+    "database": "db062",
+    "password": "tough-gar-4",
+    "user": "u_062"
+  },
+  {
+    "database": "db063",
+    "password": "clean-dove-0",
+    "user": "u_063"
+  },
+  {
+    "database": "db064",
+    "password": "finer-ibex-0",
+    "user": "u_064"
+  }
+]
+
+### delete user u_002
+DELETE {{url}}/user/u_002
+Authorization: Bearer testtest
+Accept: application/json
 
 ###
 # curl -X DELETE --location "http://localhost:5555/user/u_008"
@@ -41,8 +99,6 @@ Authorization: Bearer testtest
 Accept: application/json
 
 ###
-
-
 GET {{url}}/databases/count
 Authorization: Bearer testtest
 
@@ -55,3 +111,11 @@ Content-Type: application/json
 GET {{url}}/users
 Authorization: Bearer testtest
 Accept: text/csv
+
+### login ok
+POST {{url}}/login
+Authorization: Bearer testtest
+
+### login fail
+POST {{url}}/login
+Authorization: Bearer fail

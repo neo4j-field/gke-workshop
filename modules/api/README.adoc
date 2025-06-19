@@ -1,0 +1,62 @@
+= Neo4j Workshop API Module
+
+
+== Introduction
+This module provides a RESTful API for managing workshop databases and users on Neo4j. It includes endpoints for creating users, exporting credentials, and inspecting/deleting entities.
+It also has a minimalistic UI for the REST API.
+
+== Building the Docker Image
+To build and tag the API image locally:
+
+[source,bash]
+----
+docker build --no-cache -t neo4j-workshop-api\:local -f Dockerfile .
+----
+
+== Pushing to Container Registry
+The `tools/push.py` script automates building, tagging, pushing, and updating Terraform variables:
+
+
+
+This will:
+
+* read the version from `pytproject.yaml`
+* Build and push the image to your GCR registry
+* Generate `image_tag.auto.tfvars.json` for Terraform.
+
+== Building the UI for Local Testing
+Navigate into the `ui/` directory and run:
+
+[source,bash]
+----------
+cd ui
+yarn install
+yarn build
+----------
+
+The static assets will be output to `ui/dist/` and served by Flask in local mode.
+
+== Running the API Outside Docker
+
+From the `app/` folder:
+
+[source,bash]
+------------------
+cd app
+python -m app.main
+------------------
+
+Ensure `FLASK_ENV` is not set to `production` for dev server mode.
+
+== API Endpoints Overview
+
+* `POST /users` — create (or append) workshop users, returns JSON list of credentials.
+* `POST /export` — accept JSON array of credentials, returns CSV (`Accept: text/csv`) or PDF (`Accept: application/pdf`).
+* `POST /login` — validate bearer token, returns 200 if valid.
+* `GET /users` — list existing workshop users.
+* `GET /databases/count` — count of workshop databases.
+* `DELETE /user/{username}` — remove a specific workshop user, role, and database.
+* `GET /*` — serve React SPA (catch-all).
+
+== Testing with IntelliJ HTTP Client
+A sample HTTP client file is provided at `rest/rest-api.http`. Use it to test all endpoints locally with IntelliJ or VSCode REST extensions.

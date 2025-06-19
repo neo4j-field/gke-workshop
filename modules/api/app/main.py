@@ -10,7 +10,7 @@ from io import BytesIO
 import petname
 from app.neo4j_client import driver
 from app.security import verify_token
-from flask import Flask, request, jsonify, Response
+from flask import Flask, request, jsonify, Response, send_from_directory
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Spacer
@@ -30,12 +30,37 @@ except Exception as e:
     logging.getLogger().critical(f"Neo4j connect failed: {e}")
     sys.exit(1)
 
-app = Flask(__name__)
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+STATIC_DIR = os.path.join(BASE_DIR, 'ui', 'dist')
+
+app = Flask(
+    __name__,
+    static_folder=STATIC_DIR,
+    static_url_path=''  # serve root “/” from dist
+)
 
 app.logger.setLevel(logging.DEBUG)
 
 
-def _create_db_and_users(count, seed_uri):
+def _create_db_and_users(count, seed_uri, append=False):
+    """
+    Creates `count` users in sequence.
+    If append=False, starts at 1 (u_001…).
+    If append=True, first queries the existing max u_### and begins at max+1.
+    """
+    start = 1
+    if append:
+        with driver.session(database='system') as session:
+            rec = session.run(
+                """
+                SHOW USERS YIELD user
+                WHERE user STARTS WITH 'u_'
+                RETURN max(toInteger(substring(user,2))) AS maxId
+                """
+            ).single()
+        max_id = rec['maxId'] if rec and rec['maxId'] is not None else 0
+        start = max_id + 1
+
     results = []
     template = [
         "CREATE OR REPLACE ROLE {role}",
@@ -53,8 +78,9 @@ def _create_db_and_users(count, seed_uri):
         "SET HOME DATABASE {db}",
         "GRANT ROLE {role} TO {user}"
     ]
+
     with driver.session(database='system') as session:
-        for i in range(1, count + 1):
+        for i in range(start, start + count):
             db = f"db{i:03}"
             user = f"u_{i:03}"
             role = f"r_{i:03}"
@@ -67,7 +93,8 @@ def _create_db_and_users(count, seed_uri):
             for stmt in template:
                 session.run(stmt.format(role=role, user=user, db=db, password=pwd))
             results.append({'user': user, 'password': pwd, 'database': db})
-            app.logger.info(f"Created database and user for {user}")
+            app.logger.info(f"Created database, role and user for {user}")
+
     return results
 
 
@@ -128,32 +155,13 @@ def _pdf_response(results):
     )
 
 
-@app.route('/create', methods=['POST'])
-@verify_token
-def create():
-    payload = request.get_json(force=True)
-    count = payload.get('count')
-    seed_uri = payload.get('seed_uri')
-    if not isinstance(count, int) or count < 1:
-        return jsonify({'error': 'Invalid count'}), 400
-
-    results = _create_db_and_users(count, seed_uri)
-
-    accept = request.headers.get('Accept', '')
-    if 'text/csv' in accept:
-        return _csv_response(results)
-    if 'application/pdf' in accept:
-        return _pdf_response(results)
-    return jsonify(results)
-
-
 @app.route('/users', methods=['GET'])
 @verify_token
 def list_users():
     try:
         out = []
         with driver.session() as session:
-            for rec in session.run('SHOW USERS YIELD user, home, roles'):
+            for rec in session.run('SHOW USERS YIELD user, home, roles WHERE user STARTS WITH "u_"'):
                 out.append({
                     'user': rec['user'],
                     'database': rec.get('home'),
@@ -215,6 +223,61 @@ def delete_user(username):
             session.run(stmt.format(user=username, role=role, db=db))
 
     return jsonify({'status': 'deleted', 'user': username})
+
+
+@app.route('/users', methods=['POST'])
+@verify_token
+def create_users():
+    """
+    Creates count users (append if requested) and always returns JSON.
+    """
+    payload = request.get_json(force=True)
+    count = payload.get('count')
+    seed_uri = payload.get('seed_uri')
+    append = bool(payload.get('append', False))
+
+    if not isinstance(count, int) or count < 1:
+        return jsonify({'error': 'Invalid count'}), 400
+
+    results = _create_db_and_users(count, seed_uri, append)
+    return jsonify(results)
+
+
+@app.route('/export', methods=['POST'])
+@verify_token
+def export():
+    """
+    Accepts a JSON array of { user, password, database } objects in the request body,
+    and returns CSV if Accept: text/csv, PDF if Accept: application/pdf.
+    Defaults to echoing JSON.
+    """
+    results = request.get_json(force=True)
+    if not isinstance(results, list):
+        return jsonify({'error': 'Expected a JSON list'}), 400
+
+    accept = request.headers.get('Accept', '')
+    if 'text/csv' in accept:
+        return _csv_response(results)
+    if 'application/pdf' in accept:
+        return _pdf_response(results)
+
+    # Fallback: echo back the JSON
+    return jsonify(results)
+
+
+# catch-all to return index.html for any frontend route
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_spa(path):
+    if path and os.path.exists(os.path.join(STATIC_DIR, path)):
+        return send_from_directory(STATIC_DIR, path)
+    return send_from_directory(STATIC_DIR, 'index.html')
+
+@app.route('/login', methods=['POST'])
+@verify_token
+def login_check():
+    # If we get here, verify_token passed, so the token is good
+    return jsonify({'status': 'ok'})
 
 
 if __name__ == '__main__' and os.getenv('FLASK_ENV') != 'production':

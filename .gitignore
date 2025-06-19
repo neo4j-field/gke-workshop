@@ -7,3 +7,5 @@ terraform.tfstate*
 .api_token.txt
 /modules/api/venv/
 /modules/api/build/
+/modules/api/ui/node_modules/
+/modules/api/ui/dist/
