@@ -1,5 +1,6 @@
 import csv
 import io
+import json
 import logging
 import os
 import re
@@ -18,7 +19,7 @@ logging.getLogger('neo4j.io').setLevel(logging.INFO)
 
 from app.neo4j_client import driver
 from app.security import verify_token
-from flask import Flask, request, jsonify, Response, send_from_directory
+from flask import Flask, request, jsonify, Response, stream_with_context, send_from_directory
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Spacer
@@ -41,62 +42,6 @@ app = Flask(
 )
 
 app.logger.setLevel(logging.DEBUG)
-
-
-def _create_db_and_users(count, seed_uri, append=False):
-    """
-    Creates `count` users in sequence.
-    If append=False, starts at 1 (u_001…).
-    If append=True, first queries the existing max u_### and begins at max+1.
-    """
-    start = 1
-    if append:
-        with driver.session(database='system') as session:
-            rec = session.run(
-                """
-                SHOW USERS YIELD user
-                WHERE user STARTS WITH 'u_'
-                RETURN max(toInteger(substring(user,2))) AS maxId
-                """
-            ).single()
-        max_id = rec['maxId'] if rec and rec['maxId'] is not None else 0
-        start = max_id + 1
-
-    results = []
-    template = [
-        "CREATE OR REPLACE ROLE {role}",
-        "GRANT ACCESS ON DATABASE {db}                      TO {role}",
-        "GRANT MATCH {{*}}    ON GRAPH {db} NODE *          TO {role}",
-        "GRANT MATCH {{*}}    ON GRAPH {db} RELATIONSHIP *  TO {role}",
-        "GRANT WRITE        ON GRAPH {db}                   TO {role}",
-        "GRANT NAME MANAGEMENT            ON DATABASE {db}  TO {role}",
-        "GRANT SHOW CONSTRAINT            ON DATABASE {db}  TO {role}",
-        "GRANT CONSTRAINT MANAGEMENT      ON DATABASE {db}  TO {role}",
-        "GRANT SHOW INDEX                 ON DATABASE {db}  TO {role}",
-        "GRANT INDEX MANAGEMENT           ON DATABASE {db}  TO {role}",
-        "CREATE OR REPLACE USER {user} "
-        "SET PASSWORD '{password}' CHANGE NOT REQUIRED "
-        "SET HOME DATABASE {db}",
-        "GRANT ROLE {role} TO {user}"
-    ]
-
-    with driver.session(database='system') as session:
-        for i in range(start, start + count):
-            db = f"db{i:03}"
-            user = f"u_{i:03}"
-            role = f"r_{i:03}"
-            pwd = f"{petname.Generate(2, '-')}-{secrets.randbelow(10)}"
-            opts = f"OPTIONS {{seedURI:'{seed_uri}'}} " if seed_uri else ""
-            session.run(
-                f"CREATE DATABASE {db} IF NOT EXISTS TOPOLOGY 1 PRIMARY "
-                f"{opts}WAIT 300 SECONDS"
-            )
-            for stmt in template:
-                session.run(stmt.format(role=role, user=user, db=db, password=pwd))
-            results.append({'user': user, 'password': pwd, 'database': db})
-            app.logger.info(f"Created database, role and user for {user}")
-
-    return results
 
 
 def _csv_response(results):
@@ -228,9 +173,10 @@ def delete_user(username):
 
 @app.route('/users', methods=['POST'])
 @verify_token
-def create_users():
+def create_users_stream():
     """
-    Creates count users (append if requested) and always returns JSON.
+    Streaming-only: Creates users and streams a JSON array as chunked response.
+    POST body: { count, seed_uri?, append? }
     """
     payload = request.get_json(force=True)
     count = payload.get('count')
@@ -240,8 +186,73 @@ def create_users():
     if not isinstance(count, int) or count < 1:
         return jsonify({'error': 'Invalid count'}), 400
 
-    results = _create_db_and_users(count, seed_uri, append)
-    return jsonify(results)
+    # Determine start index
+    start = 1
+    if append:
+        with driver.session(database='system') as session:
+            rec = session.run(
+                """
+                SHOW USERS YIELD user
+                WHERE user STARTS WITH 'u_'
+                RETURN max(toInteger(substring(user,2))) AS maxId
+                """
+            ).single()
+        max_id = rec['maxId'] if rec and rec['maxId'] is not None else 0
+        start = max_id + 1
+
+    # Original Cypher template
+    template = [
+        "CREATE OR REPLACE ROLE {role}",
+        "GRANT ACCESS ON DATABASE {db}                      TO {role}",
+        "GRANT MATCH {{*}}    ON GRAPH {db} NODE *          TO {role}",
+        "GRANT MATCH {{*}}    ON GRAPH {db} RELATIONSHIP *  TO {role}",
+        "GRANT WRITE        ON GRAPH {db}                   TO {role}",
+        "GRANT NAME MANAGEMENT            ON DATABASE {db}  TO {role}",
+        "GRANT SHOW CONSTRAINT            ON DATABASE {db}  TO {role}",
+        "GRANT CONSTRAINT MANAGEMENT      ON DATABASE {db}  TO {role}",
+        "GRANT SHOW INDEX                 ON DATABASE {db}  TO {role}",
+        "GRANT INDEX MANAGEMENT           ON DATABASE {db}  TO {role}",
+        "CREATE OR REPLACE USER {user} "
+        "SET PASSWORD '{password}' CHANGE NOT REQUIRED "
+        "SET HOME DATABASE {db}",
+        "GRANT ROLE {role} TO {user}"
+    ]
+
+    def generate():
+        yield '['
+        first = True
+
+        with driver.session(database='system') as session:
+            for i in range(start, start + count):
+                db = f"db{i:03}"
+                user = f"u_{i:03}"
+                role = f"r_{i:03}"
+                pwd = f"{petname.Generate(2, '-')}-{secrets.randbelow(10)}"
+                opts = f"OPTIONS {{seedURI:'{seed_uri}'}} " if seed_uri else ""
+
+                # Create database
+                session.run(
+                    f"CREATE DATABASE {db} IF NOT EXISTS TOPOLOGY 1 PRIMARY "
+                    f"{opts}WAIT 300 SECONDS"
+                )
+                # Run role/user statements
+                for stmt in template:
+                    session.run(stmt.format(role=role, user=user, db=db, password=pwd))
+
+                # Stream result
+                result = {'user': user, 'password': pwd, 'database': db}
+                if not first:
+                    yield ','
+                else:
+                    first = False
+                yield json.dumps(result)
+
+        yield ']'
+
+    return Response(
+        stream_with_context(generate()),
+        content_type='application/json'
+    )
 
 
 @app.route('/export', methods=['POST'])

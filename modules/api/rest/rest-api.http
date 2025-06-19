@@ -2,9 +2,10 @@
 POST {{url}}/users
 Authorization: Bearer testtest
 Content-Type: application/json
+'Accept': 'text/event-stream'
 
 {
-  "count": 5
+  "count": 50
 }
 
 ### Append user

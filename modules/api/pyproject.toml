@@ -1,6 +1,6 @@
 [project]
 name = "neo4j-workshop-api"
-version = "0.1.11"
+version = "0.1.12"
 description = "Flask-based Neo4j user+DB management API"
 dependencies = [
     "flask>=2.2",
