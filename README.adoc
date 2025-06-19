@@ -125,13 +125,14 @@ tf destroy
 * **Dangling pods**: `k delete pod -n neo4j <name>` if Terraform no longer manages them
 * **Docker builds on Mac**: use `--platform linux/amd64` to avoid format errors
 
-== API Deployment (Coming Soon)
+== UI and API for user and database creation
 A REST API module will provide endpoints to:
 
 * Create N Neo4j databases and associated users
 * Optionally seed databases from a public GCS bucket
 * Support CSV or JSON responses
 * Provide a web UI for basic interaction
+* it will be automatically deployed and the URL will be displayed at the end of the deployment
 
 API image is built separately and tagged by version.
 
