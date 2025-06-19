@@ -183,11 +183,11 @@ resource "null_resource" "wait_for_neo4j_ready" {
   provisioner "local-exec" {
     command = <<EOT
     echo "Waiting for public Bolt port to be reachable..."
-    for i in {1..30}; do
+    for i in {1..60}; do
       nc -zv ${var.neo4j_domain} 7687 && exit 0
       sleep 5
     done
-    echo "Bolt port not ready after 150s"
+    echo "Bolt port not ready after 300s"
     exit 1
     EOT
   }

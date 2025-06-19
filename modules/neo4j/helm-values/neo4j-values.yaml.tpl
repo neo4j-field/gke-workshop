@@ -68,3 +68,4 @@ config:
   server.memory.pagecache.size: ${neo4j_pg}
   dbms.security.procedures.unrestricted: "apoc.*"
   initial.dbms.automatically_enable_free_servers: "true"
+  server.bolt.tls_level: "OPTIONAL"

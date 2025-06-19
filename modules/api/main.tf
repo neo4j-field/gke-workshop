@@ -42,9 +42,23 @@ resource "kubernetes_deployment" "api" {
 
           env {
             name  = "NEO4J_URI"
-            value = "neo4j://neo4j.neo4j.svc.cluster.local:7687"
+            value = "neo4j://neo4j-lb-neo4j.neo4j.svc.cluster.local:7687"
           }
 
+          env {
+            name  = "FLASK_ENV"
+            value = "production"
+          }
+
+          env {
+            name = "API_TOKEN"
+            value_from {
+              secret_key_ref {
+                name = "api-token"
+                key  = "token"
+              }
+            }
+          }
 
           volume_mount {
             mount_path = "/certs"

@@ -9,18 +9,13 @@ output "gke_cluster_name" {
 }
 
 output "neo4j_browser_url" {
-  value       = "https://${var.neo4j_domain}:7473"
+  value       = "https://${var.neo4j_domain}:7473/browser/preview/"
   description = "URL to access the Neo4j Browser"
 }
 
 output "neo4j_bolt_url" {
-  value       = "bolt://${var.neo4j_domain}:7687"
+  value       = "neo4j://${var.neo4j_domain}:7687"
   description = "Bolt connection URI"
-}
-
-output "neo4j_http_url" {
-  value       = "http://${var.neo4j_domain}:7474"
-  description = "Optional HTTP (non-TLS) endpoint"
 }
 
 output "neo4j_core_pods" {
@@ -28,13 +23,16 @@ output "neo4j_core_pods" {
   description = "Internal pod hostnames"
 }
 
-output "neo4j_password_hint" {
-  value       = "See .neo4j_password.txt for your generated Neo4j password."
-  description = "Instruction to locate the generated password"
+output "neo4j_credentials" {
+  value       = "Neo4j credentials (also in .neo4j_password.txt):\n  URL  : https://${var.neo4j_domain}:7473\n  Bolt : bolt://${var.neo4j_domain}:7687"
+  description = "Neo4j connection info and password"
 }
 
-output "api_token" {
-  value       = module.api.api_token
-  description = "API token from the API module"
-  sensitive = true
+output "api_info" {
+  value       = "API / Admin UI token can be found in also in .api_token.txt"
+  description = "Workshop API token"
+}
+
+output "ui_url" {
+  value = "The admin UI can be found at https://${var.neo4j_domain}"
 }

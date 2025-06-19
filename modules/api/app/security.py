@@ -2,7 +2,9 @@ import os
 from functools import wraps
 from flask import request, jsonify
 
-API_TOKEN = os.getenv("API_TOKEN", "changeme")
+API_TOKEN = os.getenv("API_TOKEN")
+if not API_TOKEN:
+    raise RuntimeError("API_TOKEN must be set via environment variable")
 
 def verify_token(f):
     @wraps(f)

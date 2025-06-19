@@ -14,8 +14,7 @@ RUN yarn build
 FROM python:3.11-slim AS api
 
 WORKDIR /app
-ENV FLASK_ENV=production \
-    FLASK_DEBUG=0
+ENV FLASK_ENV=production  FLASK_DEBUG=0
 
 # Copy your pyproject for pip-based install
 COPY pyproject.toml ./
@@ -29,8 +28,7 @@ RUN pip install --upgrade pip setuptools wheel \
  && pip install gunicorn
 
 # Copy in only the static UI artifacts
-COPY --from=ui-builder /app/ui/dist ./app/static
+COPY --from=ui-builder /app/ui/dist ./ui/dist
 
-EXPOSE 5000
+CMD ["gunicorn", "app.main:app", "-b", "0.0.0.0:443", "--workers", "4", "--keyfile=/certs/tls.key", "--certfile=/certs/tls.crt", "--timeout", "0"]
 
-CMD ["gunicorn", "main:app", "-b", "0.0.0.0:5000", "--workers", "4"]

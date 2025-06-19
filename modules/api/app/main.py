@@ -8,12 +8,6 @@ import sys
 from io import BytesIO
 
 import petname
-from app.neo4j_client import driver
-from app.security import verify_token
-from flask import Flask, request, jsonify, Response, send_from_directory
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Spacer
 
 # ─── Logging setup ─────────────────────────────────────────────────────────────
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
@@ -21,6 +15,13 @@ logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 # suppress overly‐chatty logs from Neo4j driver
 logging.getLogger('neo4j').setLevel(logging.INFO)
 logging.getLogger('neo4j.io').setLevel(logging.INFO)
+
+from app.neo4j_client import driver
+from app.security import verify_token
+from flask import Flask, request, jsonify, Response, send_from_directory
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Spacer
 
 # ── verify connectivity on import ─────────────────────────────────────────
 try:
@@ -272,6 +273,7 @@ def serve_spa(path):
     if path and os.path.exists(os.path.join(STATIC_DIR, path)):
         return send_from_directory(STATIC_DIR, path)
     return send_from_directory(STATIC_DIR, 'index.html')
+
 
 @app.route('/login', methods=['POST'])
 @verify_token

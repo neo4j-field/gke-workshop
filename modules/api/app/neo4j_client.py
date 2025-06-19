@@ -1,5 +1,6 @@
-import os
 import logging
+import os
+
 from neo4j import GraphDatabase, basic_auth
 
 # Silence verbose Neo4j driver logs
@@ -12,6 +13,12 @@ NEO4J_URI = os.getenv("NEO4J_URI")
 NEO4J_AUTH = os.getenv("NEO4J_AUTH")
 if not NEO4J_URI or not NEO4J_AUTH:
     raise RuntimeError("NEO4J_URI and NEO4J_AUTH must be set in environment variables")
+
+logger.info("NEO4J_URI: %s", NEO4J_URI)
+logger.info("NEO4J_AUTH: %s", NEO4J_AUTH)
+
+if '/' not in NEO4J_AUTH:
+    raise RuntimeError("NEO4J_AUTH must be in format 'user/password' (as set by Helm chart)")
 
 NEO4J_USER, NEO4J_PASSWORD = NEO4J_AUTH.split('/', 1)
 logger.info(f"Connecting to Neo4j: URI={NEO4J_URI}, User={NEO4J_USER}")
