@@ -1,0 +1,66 @@
+= Workshop Load Test
+
+This Python project simulates multiple users running named Cypher query blocks
+against a Neo4j database for workshop/load-testing purposes.
+
+== Prerequisites
+
+* Python 3.8+
+* Neo4j server reachable via Bolt protocol
+
+== Setting up your environment
+
+[source,bash]
+----
+# create & activate a venv
+python3 -m venv .venv
+. .venv/bin/activate
+
+# install dependencies
+pip install .
+----
+
+== Project Layout
+
+* `load_test.py`    — main script
+* `users.json`      — JSON array of `{ user, password, database }`
+* `example-queries.cql`     — semicolon-terminated Cypher queries grouped by `### block_name`
+
+
+== queries.cql (example)
+
+[source,cql]
+----
+### block count_all
+MATCH (n) RETURN count(n);
+
+### block create_test
+CREATE (a:Test {name: 'foo'}) RETURN a;
+
+### block process_test
+MATCH (a:Test) SET a.processed = true RETURN a;
+----
+
+== Usage
+[source,bash]
+----
+python load_test.py \
+-u bolt://localhost:7687 \
+-U users.json \
+-q queries.cql \
+-n 5
+----
+
+This will:
+
+Spawn one thread per user from users.json
+
+For each iteration and each named block:
+
+* Execute all queries in order
+* Record execution time per block
+* Sleep randomly 30–120 s between blocks
+* Print per-user and aggregate timing summaries (using your block_name)
+* Report any errors seen
+
+

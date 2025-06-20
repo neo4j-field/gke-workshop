@@ -9,3 +9,6 @@ terraform.tfstate*
 /modules/api/build/
 /modules/api/ui/node_modules/
 /modules/api/ui/dist/
+/loadtest/.venv/
+/loadtest/build/
+/backups/

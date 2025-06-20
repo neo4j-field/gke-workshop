@@ -56,6 +56,7 @@ Ensure `FLASK_ENV` is not set to `production` for dev server mode.
 * `GET /users` — list existing workshop users.
 * `GET /databases/count` — count of workshop databases.
 * `DELETE /user/{username}` — remove a specific workshop user, role, and database.
+* `DELETE /users` - delete all users and databases
 * `GET /*` — serve React SPA (catch-all).
 
 == Testing with IntelliJ HTTP Client

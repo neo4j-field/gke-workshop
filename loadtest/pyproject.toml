@@ -1,0 +1,10 @@
+[project]
+name = "workshop-loadtest"
+version = "0.1.0"
+description = "Simulate users executing Cypher queries for workshop load testing"
+authors = [
+    { name="Your Name", email="you@example.com" }
+]
+dependencies = [
+    "neo4j>=5.0.0",
+]

@@ -1,17 +1,13 @@
 [project]
 name = "neo4j-workshop-api"
-version = "0.1.12"
-description = "Flask-based Neo4j user+DB management API"
+version = "0.1.14"
+description = "Flask-based Neo4j user+DB management API and UI"
 dependencies = [
     "flask>=2.2",
     "neo4j>=5.0",
     "reportlab",
     "petname"
 ]
-
-[build-system]
-requires = ["setuptools>=61.0", "wheel"]
-build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 include = ["app"]

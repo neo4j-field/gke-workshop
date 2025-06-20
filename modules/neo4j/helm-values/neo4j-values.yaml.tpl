@@ -69,3 +69,4 @@ config:
   dbms.security.procedures.unrestricted: "apoc.*"
   initial.dbms.automatically_enable_free_servers: "true"
   server.bolt.tls_level: "OPTIONAL"
+  dbms.integrations.cloud_storage.gs.project_id: "${project_id}"
