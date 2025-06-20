@@ -52,7 +52,7 @@ Accept: text/csv
   }
 ]
 
-### export to pdf
+### convert to pdf
 POST {{url}}/export
 Authorization: Bearer testtest
 Content-Type: application/json
@@ -91,11 +91,8 @@ DELETE {{url}}/user/u_002
 Authorization: Bearer testtest
 Accept: application/json
 
-###
-# curl -X DELETE --location "http://localhost:5555/user/u_008"
-#    -H "Authorization: Bearer testtest"
-#    -H "Accept: application/json"
-DELETE http://localhost:5555/user/u_007
+### delete all users
+DELETE {{url}}/users
 Authorization: Bearer testtest
 Accept: application/json
 

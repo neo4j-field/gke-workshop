@@ -1,5 +1,12 @@
 = GKE Neo4j Workshop Infrastructure
 
+:toc: macro
+:toclevels: 3
+
+Welcome to (a/the) Neo4j Workshop environment creator.
+
+toc::[]
+
 == Purpose
 Provision a Neo4j Enterprise cluster in GKE with TLS, DNS, and plugin support using Terraform. All created resources are labeled (where supported) with the configured `creator_name` or, where GCP does not support labels, the name of the resource will include the `creator_name` and `workshop_name`.
 
@@ -8,11 +15,12 @@ Terraform is used to manage the resources, making sure everything is deleted at 
 == What It Provides
 
 * GKE cluster with configurable node pool
-* Neo4j Enterprise Helm deployment
+* Neo4j Enterprise deployed through our official helm charts and with the below certs in place
 * cert-manager setup with Let's Encrypt DNS challenge
 * TLS certificate via Let's Encrypt, Cloud DNS and static IP
 * APOC core plugin
 * Optional GDS and Bloom plugin support via secret-based licensing
+* A simple admin UI to manage users and databases
 
 == Necessary Tools
 
@@ -35,9 +43,9 @@ alias tf=terraform
 
 
 == Let's Encrypt Rate Limits
-Let's Encrypt enforces a limit of 5 certificates per domain per week. Avoid reapplying too frequently to prevent issuance lockouts. Use a variant of the desired domain for testing.
+Let's Encrypt enforces a limit of #five# certificates per domain per week. Avoid reapplying too frequently to prevent issuance lockouts. Use a variant of the desired domain for testing.
 
-I registered the domain `neowork.me` and placed it into gcloud control, so that the IPs can be updated. Your workshop domain would be a subdomain of this. Like `graphday-basf.neowork.me`. You can also use your own root domain. See below for the variables. The domain must be controlled by Google Cloud DNS.
+I registered the domain `neowork.me` and placed it into our gcloud control, so that the IPs can be updated. Your workshop domain would be a subdomain of this. Like `graphday-basf.neowork.me`. You can also use your own root domain. See below for the variables. The domain must be controlled by Google Cloud DNS.
 
 DNS certificate creation and usage inside the cluster as well as assigning the static IP to the neo4j load balancer is all automated.
 
@@ -131,10 +139,42 @@ A REST API module will provide endpoints to:
 * Create N Neo4j databases and associated users
 * Optionally seed databases from a public GCS bucket
 * Support CSV or JSON responses
+* drop all users, roles and databases
 * Provide a web UI for basic interaction
+* Generate a PDF with user login credentials for handouts
 * it will be automatically deployed and the URL will be displayed at the end of the deployment
 
-API image is built separately and tagged by version.
+Below image shows a portion of the user creation in the UI:
+
+image::ui-screenshot.png[]
+
+And this is what the downloadable PDF looks like:
+
+image::pdf_example.png[]
+
+=== Users and databases
+
+The UI allows to mass-create users, roles and databases with optional seeding the DBs from a public url.
+
+Each user gets her own database and is assigned a role that grants `archtitect` roles for only that database.
+No other databases are accessible for the user.
+
+Each database is created with `CREATE DATABASE {db} IF NOT EXISTS TOPOLOGY 1 PRIMARY`. So not clustered to preserve resources.
+
+Name patters:
+
+* databases: `dbxxx`
+* roles: `r_xxx`
+* users: `u_xxx`
+
+The API will not touch any databases, roles or users that do not match that pattern.
+
+[code,cypher]
+----
+include::modules/api/app/main.py[tag=user-creation]
+----
+
+The API image is built separately and tagged by version.
 
 === Notes on `image_tag`
 Image tag is derived from `pyproject.toml` and written into `image_tag.auto.tfvars.json`. Terraform picks this up automatically without needing to check in the file.

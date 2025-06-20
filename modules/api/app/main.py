@@ -106,7 +106,7 @@ def _pdf_response(results):
 def list_users():
     try:
         out = []
-        with driver.session() as session:
+        with driver.session(database='system') as session:
             for rec in session.run('SHOW USERS YIELD user, home, roles WHERE user STARTS WITH "u_"'):
                 out.append({
                     'user': rec['user'],
@@ -131,7 +131,7 @@ def list_users():
 @verify_token
 def count_dbs():
     try:
-        with driver.session() as session:
+        with driver.session(database='system') as session:
             count = session.run(
                 """
                 SHOW DATABASES YIELD name
@@ -200,8 +200,8 @@ def create_users_stream():
         max_id = rec['maxId'] if rec and rec['maxId'] is not None else 0
         start = max_id + 1
 
-    # Original Cypher template
     template = [
+        # tag::user-creation[]
         "CREATE OR REPLACE ROLE {role}",
         "GRANT ACCESS ON DATABASE {db}                      TO {role}",
         "GRANT MATCH {{*}}    ON GRAPH {db} NODE *          TO {role}",
@@ -216,6 +216,7 @@ def create_users_stream():
         "SET PASSWORD '{password}' CHANGE NOT REQUIRED "
         "SET HOME DATABASE {db}",
         "GRANT ROLE {role} TO {user}"
+        # end::user-creation[]
     ]
 
     def generate():
@@ -228,12 +229,12 @@ def create_users_stream():
                 user = f"u_{i:03}"
                 role = f"r_{i:03}"
                 pwd = f"{petname.Generate(2, '-')}-{secrets.randbelow(10)}"
-                opts = f"OPTIONS {{seedURI:'{seed_uri}'}} " if seed_uri else ""
+                opts = f"OPTIONS {{existingData: 'use', seedURI:'{seed_uri}'}} " if seed_uri else ""
 
                 # Create database
                 session.run(
                     f"CREATE DATABASE {db} IF NOT EXISTS TOPOLOGY 1 PRIMARY "
-                    f"{opts}WAIT 300 SECONDS"
+                    f"{opts} WAIT 300 SECONDS"
                 )
                 # Run role/user statements
                 for stmt in template:
@@ -291,6 +292,29 @@ def serve_spa(path):
 def login_check():
     # If we get here, verify_token passed, so the token is good
     return jsonify({'status': 'ok'})
+
+
+@app.route('/users', methods=['DELETE'])
+@verify_token
+def delete_all_users():
+    try:
+        deleted = 0
+        with driver.session(database='system') as session:
+            for rec in session.run("SHOW USERS YIELD user WHERE user STARTS WITH 'u_'"):
+                user = rec['user']
+                suffix = user.split('_', 1)[-1]
+                role = f"r_{suffix}"
+                db = f"db{suffix}"
+
+                app.logger.debug(f"Dropping user={user}, role={role}, db={db}")
+                session.run(f"DROP USER {user} IF EXISTS")
+                session.run(f"DROP ROLE {role} IF EXISTS")
+                session.run(f"DROP DATABASE {db} IF EXISTS")
+                deleted += 1
+        return jsonify({'status': 'deleted_all', 'count': deleted})
+    except Exception as e:
+        app.logger.error(f"Exception in DELETE /users: {e}", exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 if __name__ == '__main__' and os.getenv('FLASK_ENV') != 'production':
