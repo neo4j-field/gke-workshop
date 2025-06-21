@@ -2,7 +2,6 @@
 
 :toc:
 :toc-placement!:
-:toclevels: 3
 
 Welcome to (a / the) Neo4j Workshop environment creator.
 
