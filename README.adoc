@@ -1,9 +1,10 @@
 = GKE Neo4j Workshop Infrastructure
 
-:toc: macro
+:toc:
+:toc-placement!:
 :toclevels: 3
 
-Welcome to (a/the) Neo4j Workshop environment creator.
+Welcome to (a / the) Neo4j Workshop environment creator.
 
 toc::[]
 
@@ -42,12 +43,17 @@ alias tf=terraform
 ------
 
 
-== Let's Encrypt Rate Limits
-Let's Encrypt enforces a limit of #five# certificates per domain per week. Avoid reapplying too frequently to prevent issuance lockouts. Use a variant of the desired domain for testing.
+== DNS
 
 I registered the domain `neowork.me` and placed it into our gcloud control, so that the IPs can be updated. Your workshop domain would be a subdomain of this. Like `graphday-basf.neowork.me`. You can also use your own root domain. See below for the variables. The domain must be controlled by Google Cloud DNS.
 
 DNS certificate creation and usage inside the cluster as well as assigning the static IP to the neo4j load balancer is all automated.
+
+[NOTE]
+====
+*Let's Encrypt Rate Limits*
+Let's Encrypt enforces a limit of #five# certificates per domain per week. Avoid reapplying too frequently to prevent issuance lockouts. Use a variant of the desired domain for testing.
+====
 
 == Required Variables
 These must be placed into a file named `terraform.auto.tfvars` in the root directory. This file is not checked into git as it will be specific to each workshop. See `variables.tf` in the root folder for available variables and their description. Variable values given in `terraform.auto.tfvars` will overite the defaults in `variables.tf`
@@ -174,9 +180,11 @@ The API will not touch any databases, roles or users that do not match that patt
 include::modules/api/app/main.py[tag=user-creation]
 ----
 
-The API image is built separately and tagged by version.
+The API image is built separately and tagged by version. This repository always references the latest version.
 
-=== Notes on `image_tag`
-Image tag is derived from `pyproject.toml` and written into `image_tag.auto.tfvars.json`. Terraform picks this up automatically without needing to check in the file.
 
-Versioning ensures image provenance is clearly linked to git history.
+== Testing
+
+There is simple testing script in the `loadtest` directory. See the readme there for usage.
+
+_this repo might contain traces of LLM generated content_
