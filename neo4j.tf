@@ -11,8 +11,10 @@ module "neo4j" {
   resource_mem     = var.resource_mem
   neo4j_heap       = var.neo4j_heap
   neo4j_pg         = var.neo4j_pg
+  data_pv_size     = var.data_pv_size
   dns_solver_key   = module.gke.dns_solver_key
   loadbalancer_ip  = module.gke.neo4j_dns_ip
+
   depends_on = [module.gke]
 
   providers = {

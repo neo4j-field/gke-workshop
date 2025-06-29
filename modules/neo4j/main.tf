@@ -147,6 +147,7 @@ resource "local_file" "neo4j_helm_values" {
     neo4j_pg        = var.neo4j_pg
     loadbalancer_ip = var.loadbalancer_ip
     project_id      = var.project_id
+    data_pv_size    = var.data_pv_size
   })
   filename = "${path.module}/rendered/neo4j-values.yaml"
 }

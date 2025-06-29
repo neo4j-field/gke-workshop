@@ -22,6 +22,10 @@ resource "google_service_account_key" "dns_solver_key" {
   service_account_id = google_service_account.dns_solver.name
   private_key_type   = "TYPE_GOOGLE_CREDENTIALS_FILE"
 }
+locals {
+  # for the maintenance window. 15 days into the future
+  maintenance_offset = 15 * 24
+}
 
 resource "google_container_cluster" "gke_cluster" {
   name     = var.gke_cluster_name
@@ -36,6 +40,14 @@ resource "google_container_cluster" "gke_cluster" {
   }
   network    = google_compute_network.vpc.id
   subnetwork = google_compute_subnetwork.subnet.name
+
+  maintenance_policy {
+    recurring_window {
+        start_time = timeadd(timestamp(), "${local.maintenance_offset}h")
+        end_time   = timeadd(timestamp(), "${local.maintenance_offset + 6}h")
+        recurrence = "FREQ=DAILY"
+    }
+  }
 }
 
 resource "google_container_node_pool" "neo4j_pool" {

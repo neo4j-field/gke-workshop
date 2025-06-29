@@ -52,7 +52,7 @@ def run_user(user_conf, uri, blocks, iterations, results, lock):
             else:
                 elapsed = time.perf_counter() - start
                 stats[name].append(elapsed)
-            time.sleep(random.uniform(30, 120))
+            time.sleep(random.uniform(10, 60))
     driver.close()
     with lock:
         results[user_conf["user"]] = {"stats": stats, "errors": errors}

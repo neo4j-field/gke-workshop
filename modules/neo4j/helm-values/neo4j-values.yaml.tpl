@@ -53,7 +53,19 @@ volumes:
     dynamic:
       storageClassName: "neo4j-data"
       requests:
-        storage: 10Gi
+        storage: ${data_pv_size}
+  licenses:
+      disableSubPathExpr: true
+      mode: volume
+      volume:
+        secret:
+          secretName: gds-bloom-license
+          items:
+            - key: gds.license
+              path: gds.license
+            - key: bloom.license
+              path: bloom.license
+
 
 env:
   NEO4J_PLUGINS: '["graph-data-science", "bloom", "apoc"]'
@@ -66,7 +78,7 @@ config:
   server.memory.heap.initial_size: ${neo4j_heap}
   server.memory.heap.max_size: ${neo4j_heap}
   server.memory.pagecache.size: ${neo4j_pg}
-  dbms.security.procedures.unrestricted: "apoc.*"
   initial.dbms.automatically_enable_free_servers: "true"
   server.bolt.tls_level: "OPTIONAL"
   dbms.integrations.cloud_storage.gs.project_id: "${project_id}"
+  dbms.databases.seed_from_uri_providers: "URLConnectionSeedProvider,CloudSeedProvider"

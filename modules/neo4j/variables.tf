@@ -1,3 +1,4 @@
+// variables for this module. We just pass stuff through from the outer module
 variable "project_id" {}
 variable "email" {}
 variable "creator_name" {}
@@ -9,6 +10,7 @@ variable "resource_mem" {}
 variable "loadbalancer_ip" {}
 variable "neo4j_heap" {}
 variable "neo4j_pg" {}
+variable "data_pv_size" {}
 
 variable "dns_solver_key" {
   sensitive   = true

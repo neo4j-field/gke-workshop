@@ -57,6 +57,11 @@ variable "neo4j_pg" {
   default = "8G"
 }
 
+variable "data_pv_size" {
+  description = "requested size for the data volume. Number_of_users x db_size"
+  default = "100Gi"
+}
+
 variable "neo4j_namespace" {
   description = "K8s namespace for Neo4j."
   default     = "neo4j"

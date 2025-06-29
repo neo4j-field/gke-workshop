@@ -3,7 +3,7 @@
 :toc:
 :toc-placement!:
 
-Welcome to (a / the) Neo4j Workshop environment creator.
+Welcome to a Neo4j Workshop environment creator.
 
 toc::[]
 
