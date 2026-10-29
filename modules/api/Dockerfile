@@ -1,5 +1,5 @@
 # 1) Build the frontend
-FROM node:18-alpine AS ui-builder
+FROM node:24-alpine AS ui-builder
 WORKDIR /app/ui
 
 # Copy only metadata first for caching
